@@ -117,13 +117,22 @@ impl Parser {
         let cond = self.parse_expression()?;
         self.expect(Token::RParen)?;
         let then_branch = self.parse_block()?;
+        let mut elif_branches = Vec::new();
+        while self.check(&Token::Elif) {
+            self.advance();
+            self.expect(Token::LParen)?;
+            let elif_cond = self.parse_expression()?;
+            self.expect(Token::RParen)?;
+            let elif_body = self.parse_block()?;
+            elif_branches.push(crate::ast::ElifBranch { cond: elif_cond, body: elif_body });
+        }
         let else_branch = if self.check(&Token::Else) {
             self.advance();
             Some(self.parse_block()?)
         } else {
             None
         };
-        Ok(Statement::IfStmt { cond, then_branch, else_branch })
+        Ok(Statement::IfStmt { cond, then_branch, elif_branches, else_branch })
     }
 
     fn parse_while_stmt(&mut self) -> Result<Statement, String> {
@@ -161,6 +170,7 @@ impl Parser {
     fn parse_type(&mut self) -> Result<Type, String> {
         match self.peek() {
             Some(Token::Identifier(s)) if s == "int" => { self.advance(); Ok(Type::Int) },
+            Some(Token::Identifier(s)) if s == "float" => { self.advance(); Ok(Type::Float) },
             Some(Token::Identifier(s)) if s == "bool" => { self.advance(); Ok(Type::Bool) },
             Some(Token::Identifier(s)) if s == "str" => { self.advance(); Ok(Type::Str) },
             _ => Err("Expected type".to_string()),
@@ -293,6 +303,7 @@ impl Parser {
     fn parse_primary(&mut self) -> Result<Expr, String> {
         match self.peek() {
             Some(Token::IntLiteral(n)) => { let n = *n; self.advance(); Ok(Expr::IntLiteral(n)) },
+            Some(Token::FloatLiteral(f)) => { let f = *f; self.advance(); Ok(Expr::FloatLiteral(f)) },
             Some(Token::BoolLiteral(b)) => { let b = *b; self.advance(); Ok(Expr::BoolLiteral(b)) },
             Some(Token::StrLiteral(s)) => { let s = s.clone(); self.advance(); Ok(Expr::StrLiteral(s)) },
             Some(Token::Identifier(s)) => { let s = s.clone(); self.advance(); Ok(Expr::Identifier(s)) },

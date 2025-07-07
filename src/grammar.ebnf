@@ -5,7 +5,7 @@ statement       = variable_decl | assignment | function_decl | if_stmt | while_s
 variable_decl   = identifier [ ":" type ] "=" expr ";" ;
 assignment      = identifier "=" expr ";" ;
 function_decl   = "fn" identifier "(" [ parameters ] ")" block ;
-if_stmt         = "if" "(" expr ")" block [ "else" block ] ;
+if_stmt         = "if" "(" expr ")" block { "elif" "(" expr ")" block } [ "else" block ] ;
 while_stmt      = "while" "(" expr ")" block ;
 return_stmt     = "return" expr ";" ;
 expr_stmt       = expr ";" ;
@@ -14,7 +14,7 @@ block           = "{" { statement } "}" ;
 parameters      = parameter { "," parameter } ;
 parameter       = identifier [ ":" type ] ;
 
-type            = "int" | "bool" | "str" ;
+type            = "int" | "float" | "bool" | "str" ;
 
 expr            = logic_or ;
 logic_or        = logic_and { "or" logic_and } ;
@@ -24,11 +24,12 @@ comparison      = term { ("<" | ">" | "<=" | ">=") term } ;
 term            = factor { ("+" | "-") factor } ;
 factor          = unary { ("*" | "/") unary } ;
 unary           = [ "not" | "-" ] primary ;
-primary         = int_lit | str_lit | bool_lit | identifier | call | "(" expr ")" ;
+primary         = int_lit | float_lit | str_lit | bool_lit | identifier | call | "(" expr ")" ;
 call            = identifier "(" [ arguments ] ")" ;
 arguments       = expr { "," expr } ;
 
 identifier      = /* regex: [a-zA-Z_][a-zA-Z0-9_]* */ ;
 int_lit         = /* regex: [0-9]+ */ ;
+float_lit       = /* regex: [0-9]+\.[0-9]+ */ ;
 str_lit         = /* regex: "([^"\\]|\\.)*" */ ;
 bool_lit        = "true" | "false" ; 

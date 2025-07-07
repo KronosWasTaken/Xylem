@@ -1,9 +1,20 @@
 #[derive(Debug, Clone, PartialEq)]
+pub struct ElifBranch {
+    pub cond: Expr,
+    pub body: Vec<Statement>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     LetDecl { name: String, ty: Option<Type>, value: Expr },
     Assignment { name: String, value: Expr },
     FnDecl { name: String, params: Vec<Param>, body: Vec<Statement> },
-    IfStmt { cond: Expr, then_branch: Vec<Statement>, else_branch: Option<Vec<Statement>> },
+    IfStmt {
+        cond: Expr,
+        then_branch: Vec<Statement>,
+        elif_branches: Vec<ElifBranch>,
+        else_branch: Option<Vec<Statement>>,
+    },
     WhileStmt { cond: Expr, body: Vec<Statement> },
     Return(Expr),
     ExprStmt(Expr),
@@ -16,6 +27,7 @@ pub enum Expr {
     Call(String, Vec<Expr>),
     Identifier(String),
     IntLiteral(i64),
+    FloatLiteral(f64),
     BoolLiteral(bool),
     StrLiteral(String),
 }
@@ -39,6 +51,7 @@ pub struct Param {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Int,
+    Float,
     Bool,
     Str,
 } 

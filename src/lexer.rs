@@ -8,11 +8,13 @@ pub enum Token {
     Else,
     While,
     Return,
+    Elif,
     // Identifiers and literals
     Identifier(String),
     IntLiteral(i64),
     BoolLiteral(bool),
     StrLiteral(String),
+    FloatLiteral(f64),
     // Operators
     Plus,
     Minus,
@@ -151,12 +153,34 @@ impl<'a> Lexer<'a> {
                 if self.current_char == Some('=') { self.advance(); Token::Ge } else { Token::Gt }
             }
             Some('"') => { let s = self.read_string(); Token::StrLiteral(s) }
-            Some(c) if c.is_ascii_digit() => { let n = self.read_number(); Token::IntLiteral(n) }
+            Some(c) if c.is_ascii_digit() => {
+                let mut num = String::new();
+                let mut is_float = false;
+                while let Some(c) = self.current_char {
+                    if c.is_ascii_digit() {
+                        num.push(c);
+                        self.advance();
+                    } else if c == '.' {
+                        if is_float { break; } // Only one dot allowed
+                        is_float = true;
+                        num.push(c);
+                        self.advance();
+                    } else {
+                        break;
+                    }
+                }
+                if is_float {
+                    Token::FloatLiteral(num.parse().unwrap_or(0.0))
+                } else {
+                    Token::IntLiteral(num.parse().unwrap_or(0))
+                }
+            }
             Some(c) if c.is_alphabetic() || c == '_' => {
                 let ident = self.read_identifier();
                 match ident.as_str() {
                     "fn" => Token::Fn,
                     "if" => Token::If,
+                    "elif" => Token::Elif,
                     "else" => Token::Else,
                     "while" => Token::While,
                     "return" => Token::Return,
