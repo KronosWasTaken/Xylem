@@ -1,0 +1,10 @@
+fn greet(name: str) {
+	if (name == "Alice") {
+		print("Hello, Alice!");
+	} else {
+		print("Hello, stranger!");
+	}
+}
+
+x: int = 42;
+y = "hi";
