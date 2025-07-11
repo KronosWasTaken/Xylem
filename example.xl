@@ -1,14 +1,59 @@
-fn greet(name: str) {
-	if (name == "Alice") {
-		print("Hello, Alice!");
-	} elif (name == "Bob") {
-		print("Hello, Bob!");
-	} else {
-		print("Hello, stranger!");
-	}
+// Dummy print function (at the top for forward declaration test)
+fn print(x: str): str {
+    // dummy
+    return x;
 }
 
+// Call print before its definition (should work)
+print("called before definition");
+
+// Call add before its definition (should work)
+sum1: int = add(10, 20);
+
+// Variable declarations
 x: int = 42;
-y = "hi";
+y = x + 1;
 z: float = 3.14;
-w = 2.718;
+w = z * 2.0;
+b: bool = true;
+s: str = "hello";
+
+// Assignment
+x = 100;
+s = "world";
+
+// Function declaration and call
+fn add(a: int, b: int): int {
+    return a + b;
+}
+sum: int = add(1, 2);
+
+// If/elif/else
+if (x > 0) {
+    print("positive");
+} elif (x == 0) {
+    print("zero");
+} else {
+    print("negative");
+}
+
+// While loop
+count: int = 0;
+while (count < 3) {
+    print(count);
+    count = count + 1;
+}
+
+// Type mismatch (should error)
+x = "not an int";
+
+// Redeclaration (should error)
+x: int = 5;
+
+// Use before declaration (should error)
+print(undeclared_var);
+
+// Function with a return type mismatch (should error)
+fn bad(a: int): int {
+    return "hello";
+}

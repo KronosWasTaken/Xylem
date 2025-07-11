@@ -2,34 +2,36 @@
 pub struct ElifBranch {
     pub cond: Expr,
     pub body: Vec<Statement>,
+    pub line: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
-    LetDecl { name: String, ty: Option<Type>, value: Expr },
-    Assignment { name: String, value: Expr },
-    FnDecl { name: String, params: Vec<Param>, body: Vec<Statement> },
+    LetDecl { name: String, ty: Option<Type>, value: Expr, line: usize },
+    Assignment { name: String, value: Expr, line: usize },
+    FnDecl { name: String, params: Vec<Param>, return_type: Option<Type>, body: Vec<Statement>, line: usize },
     IfStmt {
         cond: Expr,
         then_branch: Vec<Statement>,
         elif_branches: Vec<ElifBranch>,
         else_branch: Option<Vec<Statement>>,
+        line: usize,
     },
-    WhileStmt { cond: Expr, body: Vec<Statement> },
-    Return(Expr),
-    ExprStmt(Expr),
+    WhileStmt { cond: Expr, body: Vec<Statement>, line: usize },
+    Return(Expr, usize),
+    ExprStmt(Expr, usize),
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
-    BinaryOp(Box<Expr>, BinOp, Box<Expr>),
-    UnaryOp(UnOp, Box<Expr>),
-    Call(String, Vec<Expr>),
-    Identifier(String),
-    IntLiteral(i64),
-    FloatLiteral(f64),
-    BoolLiteral(bool),
-    StrLiteral(String),
+    BinaryOp(Box<Expr>, BinOp, Box<Expr>, usize),
+    UnaryOp(UnOp, Box<Expr>, usize),
+    Call(String, Vec<Expr>, usize),
+    Identifier(String, usize),
+    IntLiteral(i64, usize),
+    FloatLiteral(f64, usize),
+    BoolLiteral(bool, usize),
+    StrLiteral(String, usize),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -46,6 +48,7 @@ pub enum UnOp {
 pub struct Param {
     pub name: String,
     pub ty: Option<Type>,
+    pub line: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]

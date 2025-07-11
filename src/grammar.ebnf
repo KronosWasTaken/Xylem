@@ -4,7 +4,7 @@ statement       = variable_decl | assignment | function_decl | if_stmt | while_s
 
 variable_decl   = identifier [ ":" type ] "=" expr ";" ;
 assignment      = identifier "=" expr ";" ;
-function_decl   = "fn" identifier "(" [ parameters ] ")" block ;
+function_decl   = "fn" identifier "(" [ parameters ] ")" [ ":" type ] block ;
 if_stmt         = "if" "(" expr ")" block { "elif" "(" expr ")" block } [ "else" block ] ;
 while_stmt      = "while" "(" expr ")" block ;
 return_stmt     = "return" expr ";" ;
