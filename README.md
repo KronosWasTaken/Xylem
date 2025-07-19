@@ -1,4 +1,4 @@
-g<div align="center">
+<div align="center">
   <img src="logo/xylem_logo.png" alt="Xylem Logo" width="180"/>
   
   <h1>Xylem Programming Language</h1>
