@@ -46,6 +46,7 @@ pub enum Bytecode {
     // Variables
     LoadVar(String),
     StoreVar(String),
+    DeclareVar(String),
     // Control flow
     Jump(usize),           // absolute jump
     JumpIfFalse(usize),    // jump if top of stack is false
@@ -136,6 +137,11 @@ impl VM {
             }
         }
         // If not found in any scope, insert as a new variable in the innermost scope
+        if let Some(scope) = self.scopes.last_mut() {
+            scope.insert(name.to_string(), val);
+        }
+    }
+    fn declare_var(&mut self, name: &str, val: Value) {
         if let Some(scope) = self.scopes.last_mut() {
             scope.insert(name.to_string(), val);
         }
@@ -240,6 +246,11 @@ impl VM {
                     let name_cloned = name.clone();
                     let val = self.pop_stack_or_error("StoreVar");
                     self.set_var(&name_cloned, val);
+                }
+                Bytecode::DeclareVar(name) => {
+                    let name_cloned = name.clone();
+                    let val = self.pop_stack_or_error("DeclareVar");
+                    self.declare_var(&name_cloned, val);
                 }
                 Bytecode::Jump(addr) => {
                     self.ip = addr;

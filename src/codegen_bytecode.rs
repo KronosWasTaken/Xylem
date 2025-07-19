@@ -26,7 +26,7 @@ impl CodegenContext {
         match stmt {
             Statement::LetDecl { name, value, .. } => {
                 self.gen_expr(value);
-                self.chunk.code.push(Bytecode::StoreVar(name.clone()));
+                self.chunk.code.push(Bytecode::DeclareVar(name.clone()));
             }
             Statement::Assignment { name, value, .. } => {
                 self.gen_expr(value);
@@ -134,6 +134,7 @@ impl CodegenContext {
             }
             Statement::ForStmt { init, cond, step, body, .. } => {
                 // for (init; cond; step) { body }
+                self.chunk.code.push(Bytecode::EnterScope);
                 self.gen_stmt(init);
                 let loop_start = self.chunk.code.len();
                 self.gen_expr(cond);
@@ -151,6 +152,7 @@ impl CodegenContext {
                 let after_loop = self.chunk.code.len();
                 self.chunk.code[jump_if_false_pos] = Bytecode::JumpIfFalse(after_loop);
                 self.chunk.code[push_loop_exit_pos] = Bytecode::PushLoopExit(after_loop);
+                self.chunk.code.push(Bytecode::ExitScope);
             }
         }
     }

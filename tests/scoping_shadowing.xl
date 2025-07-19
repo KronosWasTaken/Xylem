@@ -1,0 +1,31 @@
+// Variable shadowing in nested blocks
+x: int = 5;
+if (true) {
+    x: int = 10;
+    print(x); // Should print 10
+}
+print(x); // Should print 5
+
+// Assignment to outer variable from inner block
+y: int = 1;
+if (true) {
+    y = 2;
+}
+print(y); // Should print 2
+
+// Shadowing in for loop
+i: int = 100;
+for (i: int = 0; i < 3; i = i + 1) {
+    print(i); // Should print 0, 1, 2
+}
+print(i); // Should print 100
+
+// Shadowing in while loop
+z: int = 50;
+count: int = 0;
+while (count < 2) {
+    z: int = count * 10;
+    print(z); // Should print 0, 10
+    count = count + 1;
+}
+print(z); // Should print 50 
