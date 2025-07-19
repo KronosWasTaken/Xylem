@@ -9,6 +9,8 @@ pub enum Token {
     While,
     Return,
     Elif,
+    Break,
+    For,
     // Identifiers and literals
     Identifier(String),
     IntLiteral(i64),
@@ -213,6 +215,8 @@ impl<'a> Lexer<'a> {
                         "else" => Token::Else,
                         "while" => Token::While,
                         "return" => Token::Return,
+                        "break" => Token::Break,
+                        "for" => Token::For,
                         "true" => Token::BoolLiteral(true),
                         "false" => Token::BoolLiteral(false),
                         "and" => Token::And,

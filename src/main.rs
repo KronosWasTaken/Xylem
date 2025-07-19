@@ -1,30 +1,44 @@
 mod lexer;
 mod parser;
 mod ast;
-mod utils;
 mod semantic;
+mod bytecode;
+mod codegen_bytecode;
 
 use std::fs;
 
 fn main() {
-    let source = fs::read_to_string("example.xl").expect("Failed to read file");
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() < 2 {
+        eprintln!("Usage: {} <sourcefile.xl>", args[0]);
+        std::process::exit(1);
+    }
+    let filename = &args[1];
+    let source = std::fs::read_to_string(filename).expect("Failed to read source file");
     let mut lexer = lexer::Lexer::new(&source);
     let tokens = lexer.tokenize_all();
-    println!("Tokens: {:#?}", tokens);
+    // Remove or comment out any debug print of tokens or AST
 
     let mut parser = parser::Parser::new(tokens);
     match parser.parse_program() {
-        Ok(ast) => {
-            println!("AST: {:#?}", ast);
+        Ok(program) => {
+            // Semantic analysis
             let mut analyzer = semantic::SemanticAnalyzer::new();
-            analyzer.analyze(&ast);
-            if analyzer.errors.is_empty() {
-                println!("Semantic analysis passed: no scope errors.");
-            } else {
-                println!("Semantic errors:");
+            analyzer.analyze(&program);
+            if !analyzer.errors.is_empty() {
                 for err in analyzer.errors {
-                    println!("  {:?}", err);
+                    println!("Semantic error: {:?}", err);
                 }
+                return;
+            }
+            // Codegen: AST -> Bytecode
+            let mut cg = codegen_bytecode::CodegenContext::new();
+            cg.gen_program(&program);
+            // Run in the VM with user-defined functions
+            let mut vm = bytecode::VM::with_functions(cg.chunk, cg.functions);
+            let result = vm.run();
+            if result != bytecode::Value::None {
+                println!("[VM Result] {}", result);
             }
         },
         Err(e) => println!("Parse error: {}", e),

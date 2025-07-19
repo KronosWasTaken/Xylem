@@ -1,0 +1,7 @@
+fn inc(x: int): int {
+    return x + 1;
+}
+fn double_inc(x: int): int {
+    return inc(inc(x));
+}
+print(double_inc(5)); // Should print 7 

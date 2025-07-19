@@ -1,0 +1,4 @@
+x: int = 2;
+y: int = 3;
+z: int = x * y + 5;
+print(z); // Should print 11 

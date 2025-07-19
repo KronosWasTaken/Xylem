@@ -1,0 +1,2 @@
+print(y); // Should error: y not declared
+y: int = 5; 

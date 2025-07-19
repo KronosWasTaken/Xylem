@@ -1,16 +1,4 @@
-// Dummy print function (at the top for forward declaration test)
-fn print(x: str): str {
-    // dummy
-    return x;
-}
-
-// Call print before its definition (should work)
-print("called before definition");
-
-// Call add before its definition (should work)
-sum1: int = add(10, 20);
-
-// Variable declarations
+// --- Variable Declarations and Assignment ---
 x: int = 42;
 y = x + 1;
 z: float = 3.14;
@@ -22,13 +10,14 @@ s: str = "hello";
 x = 100;
 s = "world";
 
-// Function declaration and call
+// --- Function Declaration and Call ---
 fn add(a: int, b: int): int {
     return a + b;
 }
 sum: int = add(1, 2);
+print("sum: " + sum);
 
-// If/elif/else
+// --- If / Elif / Else ---
 if (x > 0) {
     print("positive");
 } elif (x == 0) {
@@ -37,23 +26,45 @@ if (x > 0) {
     print("negative");
 }
 
-// While loop
+// --- While Loop ---
 count: int = 0;
 while (count < 3) {
     print(count);
     count = count + 1;
 }
 
-// Type mismatch (should error)
-x = "not an int";
-
-// Redeclaration (should error)
-x: int = 5;
-
-// Use before declaration (should error)
-print(undeclared_var);
-
-// Function with a return type mismatch (should error)
-fn bad(a: int): int {
-    return "hello";
+// --- For Loop ---
+for (i: int = 0; i < 3; i = i + 1) {
+    print("for: " + i);
 }
+
+// --- Break ---
+for (j: int = 0; j < 10; j = j + 1) {
+    if (j == 2) {
+        break;
+    }
+    print("break: " + j);
+}
+
+// --- Variable Shadowing and Block Scope ---
+y: int = 10;
+if (y > 5) {
+    y: int = 99;
+    print("Inner y: " + y);
+}
+print("Outer y: " + y);
+
+// --- Error Examples (should error) ---
+// Type mismatch
+// x = "not an int";
+
+// Redeclaration
+// x: int = 5;
+
+// Use before declaration
+// print(undeclared_var);
+
+// Function with a return type mismatch
+// fn bad(a: int): int {
+//     return "hello";
+// }

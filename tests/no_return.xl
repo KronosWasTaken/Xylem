@@ -1,0 +1,5 @@
+fn f() {
+}
+print(f()); // Should print None
+fn g(): int {
+} // Should error: missing return 

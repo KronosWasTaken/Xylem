@@ -1,0 +1,4 @@
+s: str = "hello";
+b: bool = true;
+print(s);
+print(b); 

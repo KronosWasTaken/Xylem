@@ -27,7 +27,14 @@ impl Parser {
             Some(Token::Fn) => self.parse_fn_decl(),
             Some(Token::If) => self.parse_if_stmt(),
             Some(Token::While) => self.parse_while_stmt(),
+            Some(Token::For) => self.parse_for_stmt(),
             Some(Token::Return) => self.parse_return_stmt(),
+            Some(Token::Break) => {
+                let line = self.current_line();
+                self.advance();
+                self.expect(Token::Semicolon)?;
+                Ok(Statement::Break(line))
+            },
             Some(Token::Identifier(_)) => {
                 // Could be variable declaration or assignment
                 if self.is_variable_decl() {
@@ -41,16 +48,13 @@ impl Parser {
     }
 
     fn is_variable_decl(&self) -> bool {
-        // Look ahead: identifier [':' type] '='
+        // Look ahead: identifier ':' type '='
         if let Some(Token::Identifier(_)) = self.peek() {
             if self.peek_n(1) == Some(&Token::Colon) {
                 // x: type = ...
                 if self.peek_n(3) == Some(&Token::Eq) {
                     return true;
                 }
-            } else if self.peek_n(1) == Some(&Token::Eq) {
-                // x = ...
-                return true;
             }
         }
         false
@@ -68,6 +72,28 @@ impl Parser {
         let value = self.parse_expression()?;
         self.expect(Token::Semicolon)?;
         Ok(Statement::LetDecl { name, ty, value, line })
+    }
+
+    // Helper: parse variable declaration without expecting trailing semicolon
+    fn parse_variable_decl_no_semi(&mut self) -> Result<Statement, String> {
+        let (name, line) = self.expect_identifier()?;
+        let ty = if self.check(&Token::Colon) {
+            self.advance();
+            Some(self.parse_type()?)
+        } else {
+            None
+        };
+        self.expect(Token::Eq)?;
+        let value = self.parse_expression()?;
+        Ok(Statement::LetDecl { name, ty, value, line })
+    }
+
+    // Helper: parse assignment without expecting trailing semicolon
+    fn parse_assignment_no_semi(&mut self) -> Result<Statement, String> {
+        let (name, line) = self.expect_identifier()?;
+        self.expect(Token::Eq)?;
+        let value = self.parse_expression()?;
+        Ok(Statement::Assignment { name, value, line })
     }
 
     fn parse_assignment_or_expr_stmt(&mut self) -> Result<Statement, String> {
@@ -167,6 +193,37 @@ impl Parser {
         let expr = self.parse_expression()?;
         self.expect(Token::Semicolon)?;
         Ok(Statement::ExprStmt(expr, line))
+    }
+
+    fn parse_for_stmt(&mut self) -> Result<Statement, String> {
+        let line = self.current_line();
+        self.expect(Token::For)?;
+        self.expect(Token::LParen)?;
+        // Parse init statement (let or assignment) without trailing semicolon
+        let init = if self.is_variable_decl() {
+            self.parse_variable_decl_no_semi()?
+        } else {
+            self.parse_assignment_no_semi()?
+        };
+        self.expect(Token::Semicolon)?;
+        // Parse condition expression
+        let cond = self.parse_expression()?;
+        self.expect(Token::Semicolon)?;
+        // Parse step statement (assignment or expr) without trailing semicolon
+        let step = if self.is_variable_decl() {
+            self.parse_variable_decl_no_semi()?
+        } else {
+            self.parse_assignment_no_semi()?
+        };
+        self.expect(Token::RParen)?;
+        let body = self.parse_block()?;
+        Ok(Statement::ForStmt {
+            init: Box::new(init),
+            cond,
+            step: Box::new(step),
+            body,
+            line,
+        })
     }
 
     fn parse_block(&mut self) -> Result<Vec<Statement>, String> {

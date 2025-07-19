@@ -49,6 +49,7 @@ pub struct SemanticAnalyzer {
     pub errors: Vec<SemanticError>,
     pub scopes: Vec<SymbolTable>,
     pub current_function: Option<(String, Option<Type>)>,
+    pub in_loop: usize, // track loop nesting
 }
 
 impl SemanticAnalyzer {
@@ -57,6 +58,7 @@ impl SemanticAnalyzer {
             errors: Vec::new(),
             scopes: vec![SymbolTable::new()],
             current_function: None,
+            in_loop: 0,
         }
     }
 
@@ -108,6 +110,7 @@ impl SemanticAnalyzer {
                         Err(vec![SemanticError::UndeclaredVariable(name.clone(), *line)])
                     }
                 } else {
+                    // Always error if variable is not declared
                     Err(vec![SemanticError::UndeclaredVariable(name.clone(), *line)])
                 }
             }
@@ -116,7 +119,19 @@ impl SemanticAnalyzer {
                 let ltype = self.type_of_expr(left).map_err(|mut e| { errors.append(&mut e); () }).ok();
                 let rtype = self.type_of_expr(right).map_err(|mut e| { errors.append(&mut e); () }).ok();
                 match op {
-                    crate::ast::BinOp::Add | crate::ast::BinOp::Sub | crate::ast::BinOp::Mul | crate::ast::BinOp::Div => {
+                    crate::ast::BinOp::Add => {
+                        if ltype == rtype && (ltype == Some(Type::Int) || ltype == Some(Type::Float) || ltype == Some(Type::Str)) {
+                            Ok(ltype.unwrap())
+                        } else {
+                            errors.push(SemanticError::TypeMismatch {
+                                expected: format!("{:?}", ltype),
+                                found: format!("{:?}", rtype),
+                                line: *line,
+                            });
+                            Err(errors)
+                        }
+                    }
+                    crate::ast::BinOp::Sub | crate::ast::BinOp::Mul | crate::ast::BinOp::Div => {
                         if ltype == rtype && (ltype == Some(Type::Int) || ltype == Some(Type::Float)) {
                             Ok(ltype.unwrap())
                         } else {
@@ -183,7 +198,20 @@ impl SemanticAnalyzer {
             }
             Expr::Call(name, args, line) => {
                 let mut errors = Vec::new();
-                if let Some(info) = self.lookup(name) {
+                // Always check all argument expressions for errors (including print)
+                for arg in args {
+                    if let Err(mut e) = self.type_of_expr(arg) {
+                        errors.append(&mut e);
+                    }
+                }
+                if name == "print" {
+                    // Built-in: always valid, accept any argument types
+                    if errors.is_empty() {
+                        Ok(Type::Str)
+                    } else {
+                        Err(errors)
+                    }
+                } else if let Some(info) = self.lookup(name) {
                     if let SymbolKind::Function { param_types, return_type } = &info.kind {
                         if args.len() != param_types.len() {
                             errors.push(SemanticError::FunctionArgMismatch {
@@ -198,13 +226,10 @@ impl SemanticAnalyzer {
                             if let Some(expected_val) = param_ty {
                                 match self.type_of_expr(arg) {
                                     Ok(found) if &found != expected_val => {
-                                        let arg_line = match arg {
-                                            Expr::IntLiteral(_, l) | Expr::FloatLiteral(_, l) | Expr::BoolLiteral(_, l) | Expr::StrLiteral(_, l) | Expr::Identifier(_, l) | Expr::Call(_, _, l) | Expr::UnaryOp(_, _, l) | Expr::BinaryOp(_, _, _, l) => *l,
-                                        };
                                         errors.push(SemanticError::TypeMismatch {
                                             expected: format!("{:?}", expected_val),
-                                            found: format!("{:?}", found),
-                                            line: arg_line,
+                                            found: format!("{:?}", self.type_of_expr(arg)),
+                                            line: *line,
                                         });
                                     }
                                     Err(mut e) => errors.append(&mut e),
@@ -262,13 +287,28 @@ impl SemanticAnalyzer {
                     (_, Err(e)) => self.errors.extend(e.iter().cloned()),
                     _ => {}
                 }
-                let info = SymbolInfo {
-                    ty: ty.clone().or(value_type.ok()),
-                    line: *line,
-                    kind: SymbolKind::Variable,
-                };
-                if let Err(e) = self.current_scope_mut().declare(name, info) {
-                    self.errors.push(e);
+                // Only error if variable is being declared again in the same scope as a LetDecl
+                let current_scope = self.scopes.last_mut().unwrap();
+                if let Some(existing) = current_scope.get(name) {
+                    // Only error if the existing symbol is a variable (not a function) and this is a LetDecl
+                    if let SymbolKind::Variable = existing.kind {
+                        self.errors.push(SemanticError::Redeclaration(name.clone(), *line));
+                    } else {
+                        // Allow shadowing functions with variables
+                        let info = SymbolInfo {
+                            ty: ty.clone().or(value_type.ok()),
+                            line: *line,
+                            kind: SymbolKind::Variable,
+                        };
+                        let _ = current_scope.declare(name, info);
+                    }
+                } else {
+                    let info = SymbolInfo {
+                        ty: ty.clone().or(value_type.ok()),
+                        line: *line,
+                        kind: SymbolKind::Variable,
+                    };
+                    let _ = current_scope.declare(name, info);
                 }
             }
             Statement::Assignment { name, value, line } => {
@@ -291,6 +331,7 @@ impl SemanticAnalyzer {
                 }
             }
             Statement::ExprStmt(expr, line) => {
+                // Always check for errors in the expression, including undeclared variables
                 if let Err(mut e) = self.type_of_expr(expr) {
                     for err in &mut e {
                         // If the error line is 0, use the statement line
@@ -356,12 +397,12 @@ impl SemanticAnalyzer {
                     self.exit_scope();
                 }
             }
-            Statement::WhileStmt { cond, body, line } => {
+            Statement::WhileStmt { cond, body, line: _line } => {
                 if let Err(mut e) = self.type_of_expr(cond) {
                     for err in &mut e {
                         match err {
                             SemanticError::TypeMismatch { line: l, .. } | SemanticError::FunctionArgMismatch { line: l, .. } | SemanticError::FunctionReturnMismatch { line: l, .. } | SemanticError::UndeclaredVariable(_, l) | SemanticError::Redeclaration(_, l) => {
-                                if *l == 0 { *l = *line; }
+                                if *l == 0 { *l = *_line; }
                             }
                         }
                     }
@@ -370,14 +411,48 @@ impl SemanticAnalyzer {
                     self.errors.push(SemanticError::TypeMismatch {
                         expected: "Bool".to_string(),
                         found: format!("{:?}", self.type_of_expr(cond).ok()),
-                        line: *line,
+                        line: *_line,
                     });
                 }
                 self.enter_scope();
+                self.in_loop += 1;
                 for s in body {
                     self.visit_stmt(s);
                 }
+                self.in_loop -= 1;
                 self.exit_scope();
+            }
+            Statement::ForStmt { init, cond, step, body, line: _line } => {
+                self.enter_scope();
+                self.visit_stmt(init);
+                if let Err(mut e) = self.type_of_expr(cond) {
+                    for err in &mut e {
+                        match err {
+                            SemanticError::TypeMismatch { line: l, .. } | SemanticError::FunctionArgMismatch { line: l, .. } | SemanticError::FunctionReturnMismatch { line: l, .. } | SemanticError::UndeclaredVariable(_, l) | SemanticError::Redeclaration(_, l) => {
+                                if *l == 0 { *l = *_line; }
+                            }
+                        }
+                    }
+                    self.errors.append(&mut e);
+                } else if self.type_of_expr(cond).ok() != Some(Type::Bool) {
+                    self.errors.push(SemanticError::TypeMismatch {
+                        expected: "Bool".to_string(),
+                        found: format!("{:?}", self.type_of_expr(cond).ok()),
+                        line: *_line,
+                    });
+                }
+                self.in_loop += 1;
+                for s in body {
+                    self.visit_stmt(s);
+                }
+                self.visit_stmt(step);
+                self.in_loop -= 1;
+                self.exit_scope();
+            }
+            Statement::Break(line) => {
+                if self.in_loop == 0 {
+                    self.errors.push(SemanticError::UndeclaredVariable("break outside of loop".to_string(), *line));
+                }
             }
             Statement::FnDecl { name, params, return_type, body, line } => {
                 // Function signature already added in first pass, so skip redeclaration here
@@ -390,6 +465,24 @@ impl SemanticAnalyzer {
                 self.current_function = Some((name.clone(), return_type.clone()));
                 for s in body {
                     self.visit_stmt(s);
+                }
+                // Check for missing return in non-void functions
+                if let Some(ret_ty) = return_type {
+                    let mut has_return = false;
+                    for stmt in body {
+                        if contains_return(stmt) {
+                            has_return = true;
+                            break;
+                        }
+                    }
+                    if !has_return {
+                        self.errors.push(SemanticError::FunctionReturnMismatch {
+                            name: name.clone(),
+                            expected: format!("{:?}", ret_ty),
+                            found: "None".to_string(),
+                            line: *line,
+                        });
+                    }
                 }
                 self.current_function = prev_fn;
                 self.exit_scope();
@@ -412,5 +505,20 @@ impl SemanticAnalyzer {
                 }
             }
         }
+    }
+}
+
+// Helper to check if a statement contains a Return
+fn contains_return(stmt: &Statement) -> bool {
+    match stmt {
+        &Statement::Return(_, _) => true,
+        &Statement::IfStmt { ref then_branch, ref elif_branches, ref else_branch, .. } => {
+            then_branch.iter().any(contains_return)
+                || elif_branches.iter().any(|elif| elif.body.iter().any(contains_return))
+                || else_branch.as_ref().map_or(false, |b| b.iter().any(contains_return))
+        }
+        &Statement::WhileStmt { ref body, .. } => body.iter().any(contains_return),
+        &Statement::ForStmt { ref body, .. } => body.iter().any(contains_return),
+        _ => false,
     }
 } 

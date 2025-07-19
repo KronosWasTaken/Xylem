@@ -1,0 +1,4 @@
+x: int = 5;
+print(-x); // Should print -5
+b: bool = false;
+print(not b); // Should print true 

@@ -1,12 +1,18 @@
 program         = { statement } ;
 
-statement       = variable_decl | assignment | function_decl | if_stmt | while_stmt | return_stmt | expr_stmt ;
+statement       = variable_decl | assignment | function_decl | if_stmt | while_stmt | for_stmt | break_stmt | return_stmt | expr_stmt ;
 
 variable_decl   = identifier [ ":" type ] "=" expr ";" ;
 assignment      = identifier "=" expr ";" ;
 function_decl   = "fn" identifier "(" [ parameters ] ")" [ ":" type ] block ;
 if_stmt         = "if" "(" expr ")" block { "elif" "(" expr ")" block } [ "else" block ] ;
 while_stmt      = "while" "(" expr ")" block ;
+for_stmt       = "for" "(" for_init ";" expr ";" for_step ")" block ;
+for_init       = variable_decl_no_semi | assignment_no_semi ;
+for_step       = assignment_no_semi ;
+variable_decl_no_semi = identifier [ ":" type ] "=" expr ;
+assignment_no_semi    = identifier "=" expr ;
+break_stmt      = "break" ";" ;
 return_stmt     = "return" expr ";" ;
 expr_stmt       = expr ";" ;
 

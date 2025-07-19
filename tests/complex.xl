@@ -1,0 +1,39 @@
+// Complex program: nested functions, shadowing, control flow, mixed types
+fn factorial(n: int): int {
+    if (n <= 1) {
+        return 1;
+    } else {
+        return n * factorial(n - 1);
+    }
+}
+
+fn greet(name: str): str {
+    return "Hello, " + name;
+}
+
+x: int = 4;
+print("Factorial of 4:");
+print(factorial(x)); // Should print 24
+
+name: str = "World";
+print(greet(name)); // Should print Hello, World
+
+// Variable shadowing and block scope
+y: int = 10;
+if (y > 5) {
+    y: int = 99;
+    print("Inner y:");
+    print(y); // Should print 99
+}
+print("Outer y:");
+print(y); // Should print 10
+
+// While with break-like logic
+count: int = 0;
+while (true) {
+    if (count == 3) {
+        break;
+    }
+    print(count);
+    count = count + 1;
+} 

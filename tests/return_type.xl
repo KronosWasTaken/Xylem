@@ -1,0 +1,3 @@
+fn bad(a: int): int {
+    return "not an int"; // Should error: return type mismatch
+} 

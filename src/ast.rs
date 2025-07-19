@@ -18,8 +18,16 @@ pub enum Statement {
         line: usize,
     },
     WhileStmt { cond: Expr, body: Vec<Statement>, line: usize },
+    ForStmt {
+        init: Box<Statement>,
+        cond: Expr,
+        step: Box<Statement>,
+        body: Vec<Statement>,
+        line: usize,
+    },
     Return(Expr, usize),
     ExprStmt(Expr, usize),
+    Break(usize),
 }
 
 #[derive(Debug, Clone, PartialEq)]

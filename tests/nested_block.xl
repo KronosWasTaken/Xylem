@@ -1,0 +1,6 @@
+x: int = 1;
+if (true) {
+    x: int = 2;
+    print(x); // Should print 2
+}
+print(x); // Should print 1 
